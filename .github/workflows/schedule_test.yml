@@ -3,6 +3,7 @@ name: Schedule test
 on:
   schedule:
     - cron: '0 * * * *'  # every hour at minute 0 (UTC)
+  workflow_dispatch: {}
 
 jobs:
   test:
@@ -11,6 +12,15 @@ jobs:
       - name: Print timestamp
         run: |
           echo "Schedule test run at $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > schedule_test.txt
+
+      - name: List files for debug
+        run: |
+          ls -la
+
+      - name: Show schedule_test.txt contents
+        run: |
+          echo "--- schedule_test.txt ---"
+          cat schedule_test.txt || echo "(file not found)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
