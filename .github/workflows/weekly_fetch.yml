@@ -25,6 +25,11 @@ jobs:
       - name: Run fetcher
         run: |
           python fetch_papers.py --weekly --rows 200 --last-days 30 --query "pig OR swine"
+        - name: Record last success timestamp
+          if: ${{ success() }}
+          run: |
+            mkdir -p weekly
+            echo "Last success: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > weekly/last_success.txt
 
       - name: Commit results
         run: |
