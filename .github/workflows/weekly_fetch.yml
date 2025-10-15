@@ -2,7 +2,7 @@ name: Weekly paper fetch
 
 on:
   schedule:
-    - cron: '0 13 * * 3'  # every Wednesday at 13:00 UTC (~09:00 US Eastern during DST)
+    - cron: '15 14 * * 3'  # every Wednesday at 14:15 UTC (~10:15 US Eastern during DST)
   workflow_dispatch: {}
 
 jobs:
