@@ -1,6 +1,6 @@
 0377-8401  # Animal Feed Science and Technology (from 'Animal Feed Science and Technology')
 1751-732X  # Animal (from 'Animal')
-2076-2615  # Animals (from 'Animals')
+#2076-2615  # Animals (from 'Animals')  # commented out per user request
 2765-0189  # Animal Bioscience (from 'Animal Bioscience')
 0021-8812  # Journal of Animal Science (from 'Journal of Animal Science')
 1525-3163  # Journal of Animal Science (electronic) (from 'Journal of Animal Science')
