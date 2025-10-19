@@ -2,7 +2,9 @@ name: Weekly paper fetch
 
 on:
   schedule:
-    - cron: '59 3 * * 1'  # every Monday at 03:59 UTC (~Sun 23:59 US Eastern during DST)
+    # Two UTC times to cover US Eastern 23:59 across DST changes:
+    - cron: '59 3 * * 1'  # Monday 03:59 UTC (covers Sun 23:59 during EDT)
+    - cron: '59 4 * * 1'  # Monday 04:59 UTC (covers Sun 23:59 during EST)
   workflow_dispatch: {}
 
 jobs:
@@ -22,17 +24,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: DST guard (run only when it's Sun 23:59 US/Eastern)
+        id: guard
+        run: |
+          echo "Checking US/Eastern local time..."
+          hourmin=$(TZ=America/New_York date +'%H:%M')
+          dow=$(TZ=America/New_York date +'%u')
+          echo "ET now: $hourmin, dow=$dow"
+          # %u: 1 (Monday) .. 7 (Sunday)
+          if [ "$dow" -eq 7 ] && [ "$hourmin" = "23:59" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+            echo "Not ET Sunday 23:59; skipping fetch."
+          fi
+
       - name: Run fetcher
+        if: ${{ steps.guard.outputs.run == 'true' }}
         run: |
           python fetch_papers.py --weekly --rows 200 --last-days 30 --query "pig OR swine"
 
       - name: Record last success timestamp
-        if: ${{ success() }}
+        if: ${{ steps.guard.outputs.run == 'true' && success() }}
         run: |
           mkdir -p weekly
           echo "Last success: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > weekly/last_success.txt
 
       - name: Commit results
+        if: ${{ steps.guard.outputs.run == 'true' && success() }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
