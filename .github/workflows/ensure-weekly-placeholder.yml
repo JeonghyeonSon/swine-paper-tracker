@@ -1,0 +1,79 @@
+name: Ensure Weekly Placeholder
+
+on:
+  schedule:
+    # Run weekly on Monday at 5:00 UTC (after the weekly paper fetch workflow)
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      update_dir:
+        description: 'Directory to check for markdown files'
+        required: false
+        default: 'papers/updates'
+
+env:
+  # Default directory for generated markdown files
+  UPDATE_DIR: ${{ github.event.inputs.update_dir || 'papers/updates' }}
+
+jobs:
+  ensure-placeholder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for markdown files and create placeholder if needed
+        id: check_files
+        run: |
+          # Check if UPDATE_DIR exists
+          if [ ! -d "$UPDATE_DIR" ]; then
+            echo "Directory $UPDATE_DIR does not exist, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Count markdown files in UPDATE_DIR
+          md_count=$(find "$UPDATE_DIR" -maxdepth 1 -type f \
+            -name "*.md" | wc -l)
+          echo "Found $md_count markdown file(s) in $UPDATE_DIR"
+
+          if [ "$md_count" -eq 0 ]; then
+            # No markdown files found, create placeholder
+            echo "No markdown files found, creating placeholder"
+
+            # Generate filename with current date
+            current_date=$(date -u +"%Y-%m-%d")
+            placeholder_file="$UPDATE_DIR/${current_date}-no-new-papers.md"
+
+            # Create placeholder markdown file with frontmatter and message
+            cat > "$placeholder_file" << 'EOF'
+---
+title: "No New Papers This Week"
+date: "DATEPLACEHOLDER"
+status: "no-updates"
+---
+
+# No New Papers This Week
+
+This week there are no updated papers. The automatic update ran successfully; no new papers were added this week.
+EOF
+
+            # Replace the date placeholder in the file
+            sed -i "s/DATEPLACEHOLDER/$current_date/" "$placeholder_file"
+
+            echo "Created placeholder file: $placeholder_file"
+            echo "placeholder_created=true" >> $GITHUB_OUTPUT
+            echo "placeholder_file=$placeholder_file" >> $GITHUB_OUTPUT
+          else
+            echo "Markdown files exist, no placeholder needed"
+            echo "placeholder_created=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push placeholder file
+        if: steps.check_files.outputs.placeholder_created == 'true'
+        uses: endbug/add-and-commit@v9
+        with:
+          add: '${{ env.UPDATE_DIR }}/*.md'
+          message: 'Add weekly placeholder: no new papers this week'
+          default_author: github_actions
