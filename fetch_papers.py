@@ -129,13 +129,15 @@ def _save_index(index_path, doi_set):
         json.dump(sorted(list(doi_set)), f, ensure_ascii=False, indent=2)
 
 
-def save_to_markdown(papers, out_path="latest_papers.md", append=True, index_path=".papers_index.json"):
+def save_to_markdown(papers, out_path="latest_papers.md", append=True, index_path=".papers_index.json", create_if_empty=False):
     existing = _load_index(index_path)
     new_papers = [p for p in papers if p.get("doi") and p["doi"] not in existing]
 
     if not new_papers:
-        print("No new papers to add.")
-        return 0
+        if not create_if_empty:
+            print("No new papers to add.")
+            return 0
+        # fallthrough: create an empty file with header/message
 
     mode = "a" if append and os.path.exists(out_path) else "w"
     header = f"# 🐷 Latest Swine Papers — {datetime.date.today()}\n\n"
@@ -175,7 +177,10 @@ def save_to_markdown(papers, out_path="latest_papers.md", append=True, index_pat
         if p.get("doi"):
             existing.add(p["doi"])
     _save_index(index_path, existing)
-    print(f"Added {len(new_papers)} new papers to {out_path}")
+    if new_papers:
+        print(f"Added {len(new_papers)} new papers to {out_path}")
+    else:
+        print(f"Created empty weekly file {out_path} (no new papers)")
     return len(new_papers)
 
 
@@ -250,7 +255,7 @@ def main():
         # do not append to weekly archive files by default; write a new file each run
         args.append = False
 
-    save_to_markdown(unique_papers, out_path=out_path, append=args.append)
+    save_to_markdown(unique_papers, out_path=out_path, append=args.append, create_if_empty=(args.weekly))
 
 
 if __name__ == "__main__":
